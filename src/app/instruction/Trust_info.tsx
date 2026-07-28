@@ -14,7 +14,7 @@ export default function Index() {
         headerTitle:''
        }} />
       <Image source={require("../../../assets/images/pages/page_5.jpg")} style={styles.image} resizeMode='cover' />
-      <Button title="Let’s Go →" on={()=>router.push('/instruction/screens/HomeScreen')}/>
+      <Button title="Let’s Go →" on={()=>router.push('/instruction/screens/HomeScreenPremium')}/>
       <View>
         <Text>hwllo</Text>
       </View>
