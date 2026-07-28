@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import {
   Image,
+  NativeModules,
   Platform,
   ScrollView,
   StatusBar,
@@ -11,7 +12,7 @@ import {
   View
 } from 'react-native';
 
- import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 const COLORS = {
   navy: '#12172B',
   navyDark: '#0B0E1C',
@@ -30,7 +31,7 @@ const placeholder = { uri: 'https://placehold.co/160x110/12172B/ffffff?text=DOC'
 const QUICK_ACCESS = [
   { id: '1', title: 'Aadhaar Card', img: 'https://images.moneycontrol.com/static-mcnews/2025/04/20250404112835_Aadhaar-card-generated-using-AI-690x435.png ', verified: true },
   { id: '2', title: 'PAN Card', img: 'https://www.pancardapp.com/blog/wp-content/uploads/2019/04/sample-pan-card.jpg', verified: true },
-  { id: '3', title: 'Passport', img:"image.png", verified: true },
+  { id: '3', title: 'Passport', img: "image.png", verified: true },
   { id: '4', title: 'Driving License', img: placeholder, verified: true },
   { id: '5', title: 'Voter ID', img: placeholder, verified: false },
 ];
@@ -49,17 +50,35 @@ const RECENT_DOCS = [
   { id: '2', name: 'SBI Passbook.pdf', folder: 'Banking', date: 'Yesterday, 06:15 PM' },
 ];
 
+
+console.dir(NativeModules)
+const { VaultModule } = NativeModules;
 export default function HomeScreenPremium() {
+
+
+  const test = async () => {
+    try {
+      const result = await VaultModule.mmdd();
+      console.log(result);
+      alert(result);
+    } catch (e) {
+      console.log(e);
+
+    }
+
+  };
+test()
+
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{
-        headerShown:false
-      }}/>
+        headerShown: false
+      }} />
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.navy} />
       <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
         {/* Header */}
         <View style={styles.header}>
-        
+
           <View style={styles.greetingSection}>
             <Text style={styles.eyebrow}>WELCOME BACK</Text>
             <Text style={styles.greeting}>Hello, User</Text>
@@ -94,7 +113,7 @@ export default function HomeScreenPremium() {
           {QUICK_ACCESS.map((item) => (
             <TouchableOpacity key={item.id} style={styles.quickCard} activeOpacity={0.85}>
               <View>
-                <Image source={{uri:String(item.img).trim()}} style={styles.quickImage} />
+                <Image source={{ uri: String(item.img).trim() }} style={styles.quickImage} />
                 {item.verified && (
                   <View style={styles.verifiedBadge}>
                     <Text style={styles.verifiedText}>✓</Text>
@@ -191,7 +210,7 @@ const shadow = {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg},
+  container: { flex: 1, backgroundColor: COLORS.bg },
   header: {
     backgroundColor: COLORS.navy,
     paddingTop: Platform.OS === 'ios' ? 4 : 16,
