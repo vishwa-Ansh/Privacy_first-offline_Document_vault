@@ -1,18 +1,22 @@
-import { Stack } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   Image,
-  NativeModules,
   Platform,
+  RefreshControl,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
-import { SafeAreaView } from 'react-native-safe-area-context';
+// Optional: for a true gradient header, install expo-linear-gradient and swap
+// the `View` in `header` for `LinearGradient colors={[COLORS.navyDark, COLORS.navy]}`
+// This file uses a solid navy so it works with zero extra dependencies.
+
 const COLORS = {
   navy: '#12172B',
   navyDark: '#0B0E1C',
@@ -29,9 +33,9 @@ const COLORS = {
 const placeholder = { uri: 'https://placehold.co/160x110/12172B/ffffff?text=DOC' };
 
 const QUICK_ACCESS = [
-  { id: '1', title: 'Aadhaar Card', img: 'https://images.moneycontrol.com/static-mcnews/2025/04/20250404112835_Aadhaar-card-generated-using-AI-690x435.png ', verified: true },
-  { id: '2', title: 'PAN Card', img: 'https://www.pancardapp.com/blog/wp-content/uploads/2019/04/sample-pan-card.jpg', verified: true },
-  { id: '3', title: 'Passport', img: "image.png", verified: true },
+  { id: '1', title: 'Aadhaar Card', img: placeholder, verified: true },
+  { id: '2', title: 'PAN Card', img: placeholder, verified: true },
+  { id: '3', title: 'Passport', img: placeholder, verified: true },
   { id: '4', title: 'Driving License', img: placeholder, verified: true },
   { id: '5', title: 'Voter ID', img: placeholder, verified: false },
 ];
@@ -50,34 +54,59 @@ const RECENT_DOCS = [
   { id: '2', name: 'SBI Passbook.pdf', folder: 'Banking', date: 'Yesterday, 06:15 PM' },
 ];
 
+export default function HomeScreenPremium({ folders, recentFiles, onRefresh, onOpenFolder }) {
+  // Falls back to mock data so this screen still renders standalone in
+  // preview, but uses real phone data whenever App.js passes it in.
+  const folderData = folders && folders.length ? folders : FOLDERS;
+  const recentData =
+    recentFiles && recentFiles.length
+      ? recentFiles.map((f) => ({
+          id: f.path,
+          name: f.name,
+          folder: f.folderTitle,
+          date: new Date(f.mtime).toLocaleString(),
+        }))
+      : RECENT_DOCS;
 
-console.dir(NativeModules)
-const { VaultModule } = NativeModules;
-export default function HomeScreenPremium() {
-
-
-  const test = async () => {
-    try {
-      const result = await VaultModule.mmdd();
-      console.log(result);
-      alert(result);
-    } catch (e) {
-      console.log(e);
-
-    }
-
-  };
-test()
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    if (!onRefresh) return;
+    setRefreshing(true);
+    await onRefresh();
+    setRefreshing(false);
+  }, [onRefresh]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{
-        headerShown: false
-      }} />
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.navy} />
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.navy} />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.gold} />
+          ) : undefined
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
+          <View style={styles.topBar}>
+            <TouchableOpacity style={styles.iconButtonDark}>
+              <Text style={styles.iconTextLight}>☰</Text>
+            </TouchableOpacity>
+            <View style={styles.topBarRight}>
+              <TouchableOpacity style={styles.premiumPill}>
+                <Text style={styles.premiumPillIcon}>👑</Text>
+                <Text style={styles.premiumPillText}>Premium</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconButtonDark}>
+                <Text style={styles.iconTextLight}>🔔</Text>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>3</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <View style={styles.greetingSection}>
             <Text style={styles.eyebrow}>WELCOME BACK</Text>
@@ -113,7 +142,7 @@ test()
           {QUICK_ACCESS.map((item) => (
             <TouchableOpacity key={item.id} style={styles.quickCard} activeOpacity={0.85}>
               <View>
-                <Image source={{ uri: String(item.img).trim() }} style={styles.quickImage} />
+                <Image source={item.img} style={styles.quickImage} />
                 {item.verified && (
                   <View style={styles.verifiedBadge}>
                     <Text style={styles.verifiedText}>✓</Text>
@@ -133,21 +162,30 @@ test()
           </TouchableOpacity>
         </View>
         <View style={styles.foldersGrid}>
-          {FOLDERS.map((folder) => (
-            <TouchableOpacity key={folder.id} style={styles.folderCard} activeOpacity={0.85}>
+          {folderData.map((folder) => (
+            <TouchableOpacity
+              key={folder.id || folder.key}
+              style={styles.folderCard}
+              activeOpacity={0.85}
+              onPress={() => onOpenFolder && onOpenFolder(folder)}
+            >
               <View style={styles.folderIconWrap}>
                 <Text style={styles.folderIcon}>{folder.icon}</Text>
               </View>
               <Text style={styles.folderTitle}>{folder.title}</Text>
               <Text style={styles.folderCount}>{folder.count} Documents</Text>
-              <View style={styles.folderThumbsRow}>
-                <View style={styles.thumbSmall} />
-                <View style={styles.thumbSmall} />
-                <View style={styles.thumbSmall} />
-                <View style={styles.thumbMore}>
-                  <Text style={styles.thumbMoreText}>+{folder.count - 3}</Text>
+              {folder.count > 0 && (
+                <View style={styles.folderThumbsRow}>
+                  {Array.from({ length: Math.min(3, folder.count) }).map((_, i) => (
+                    <View key={i} style={styles.thumbSmall} />
+                  ))}
+                  {folder.count > 3 && (
+                    <View style={styles.thumbMore}>
+                      <Text style={styles.thumbMoreText}>+{folder.count - 3}</Text>
+                    </View>
+                  )}
                 </View>
-              </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -160,7 +198,13 @@ test()
           </TouchableOpacity>
         </View>
         <View style={styles.recentList}>
-          {RECENT_DOCS.map((doc) => (
+          {recentData.length === 0 && (
+            <Text style={styles.emptyText}>
+              No documents yet — add files to your DocumentsVault folders on
+              your phone and pull down to refresh.
+            </Text>
+          )}
+          {recentData.map((doc) => (
             <View key={doc.id} style={styles.recentItem}>
               <View style={styles.recentThumb} />
               <View style={styles.recentInfo}>
@@ -394,6 +438,13 @@ const styles = StyleSheet.create({
   recentInfo: { flex: 1 },
   recentName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   recentFolder: { fontSize: 12, color: COLORS.textMuted, marginTop: 3 },
+  emptyText: {
+    fontSize: 12.5,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    paddingVertical: 20,
+    lineHeight: 18,
+  },
   recentRight: { alignItems: 'flex-end' },
   recentDate: { fontSize: 11, color: COLORS.textMuted },
   moreDots: { fontSize: 18, color: COLORS.textMuted, marginTop: 6 },
